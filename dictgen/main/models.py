@@ -100,7 +100,7 @@ class Error(models.Model):
     error_type = models.CharField(max_length=24, choices=ERROR_TYPES_CHOICES)
     position_start = models.IntegerField()
     position_end = models.IntegerField()
-    true_variant = models.CharField(max_length=128)
+    true_variant = models.TextField()
 
     def __str__(self):
         return f"Error: {self.error_type} in attempt {self.attempt.id}"
