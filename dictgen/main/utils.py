@@ -1,7 +1,8 @@
-from .models import Error
+from .models import Error, Metric
 import difflib
 import re
 import pymorphy3
+from Levenshtein import distance as Levenshtein
 
 # Создаем морфологический анализатор
 morph = pymorphy3.MorphAnalyzer()
@@ -112,3 +113,58 @@ def analyze_errors(attempt):
         Error.objects.bulk_create(errors)
     
     return errors
+
+def calculate_metrics(attempt):
+    """
+    Рассчитывает все метрики для попытки выполнения задания.
+    """
+    task = attempt.task
+    task_text = task.content
+    attempt_text = attempt.content
+
+    # Разбиваем тексты на слова и символы
+    task_words = re.findall(r"\w+|[.,:;!?—()""''…]", task_text.lower())
+    attempt_words = re.findall(r"\w+|[.,:;!?—()""''…]", attempt_text.lower())
+    
+    # Разбиваем на символы для CER
+    task_chars = list(task_text.lower())
+    attempt_chars = list(attempt_text.lower())
+    
+    # Рассчитываем расстояние Левенштейна
+    levenshtein_distance = Levenshtein.distance(task_text.lower(), attempt_text.lower())
+    
+    # Рассчитываем WER (Word Error Rate)
+    word_errors = Levenshtein.distance(task_words, attempt_words)
+    wer = word_errors / len(task_words) if task_words else 0
+    
+    # Рассчитываем CER (Character Error Rate)
+    char_errors = Levenshtein.distance(task_chars, attempt_chars)
+    cer = char_errors / len(task_chars) if task_chars else 0
+    
+    # Рассчитываем PER (Position Error Rate)
+    matcher = difflib.SequenceMatcher(None, task_words, attempt_words)
+    position_errors = sum(1 for tag, _, _, _, _ in matcher.get_opcodes() if tag != 'equal')
+    per = position_errors / len(task_words) if task_words else 0
+    
+    # Рассчитываем точность
+    accuracy = 1 - wer
+    
+    # Подсчитываем количество ошибок по типам
+    errors = Error.objects.filter(attempt=attempt)
+    word_error_count = errors.filter(error_type='spelling').count()
+    punctuation_error_count = errors.filter(error_type='punctuation').count()
+    missing_word_count = errors.filter(error_type='missing').count()
+    
+    # Создаем и сохраняем метрики
+    metrics = Metric.objects.create(
+        levenshtein=levenshtein_distance,
+        wer=wer,
+        cer=cer,
+        per=per,
+        accuracy=accuracy,
+        word_error_count=word_error_count,
+        punctuation_error_count=punctuation_error_count,
+        missing_word_count=missing_word_count
+    )
+    
+    return metrics

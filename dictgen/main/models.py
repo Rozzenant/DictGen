@@ -108,18 +108,19 @@ class Error(models.Model):
 
 # Метрики оценки задания
 class Metric(models.Model):
+    attempt = models.OneToOneField(Attempt, on_delete=models.CASCADE, related_name='metrics')
     levenshtein = models.IntegerField()
-    wer = models.FloatField()
-    cer = models.FloatField()
-    per = models.FloatField()
+    wer = models.FloatField()  # Word Error Rate
+    cer = models.FloatField()  # Character Error Rate
+    per = models.FloatField()  # Position Error Rate
     accuracy = models.FloatField()
-    word_error_count = models.IntegerField()
-    punctuation_error_count = models.IntegerField()
-    missing_word_count = models.IntegerField()
+    word_error_count = models.IntegerField(default=0)
+    punctuation_error_count = models.IntegerField(default=0)
+    missing_word_count = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
-
+    
     def __str__(self):
-        return f"Metrics: Accuracy {self.accuracy*100:.2f}%"
+        return f"Metrics: Accuracy {self.accuracy*100:.2f}% для попытки {self.attempt.id}"
 
 
 # Статистика попыток
