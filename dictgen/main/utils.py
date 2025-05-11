@@ -44,7 +44,7 @@ def analyze_errors(attempt):
             if any(c in '.,:;!?—()""''…' for c in task_word) or any(c in '.,:;!?—()""''…' for c in attempt_word):
                 error_type = 'punctuation'  # Пунктуационная ошибка
             else:
-                # Анализируем слова с помощью pymorphy2
+                # Анализируем слова с помощью pymorphy3
                 task_parse = morph.parse(task_word)
                 attempt_parse = morph.parse(attempt_word)
                 
