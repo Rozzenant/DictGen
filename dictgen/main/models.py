@@ -1,38 +1,6 @@
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
-
-# Роли пользователя
-USER_ROLES_CHOICES = [
-    ('student', 'Ученик'),
-    ('teacher', 'Преподаватель'),
-    ('admin', 'Администратор'),
-]
-
-# Типы сложности текста
-TEXT_COMPLEXITY_CHOICES = [
-    ('scientific', 'Научный'),
-    ('narrative', 'Повествовательный'),
-    ('colloquial', 'Разговорный'),
-    ('technical', 'Технический'),
-    ('artistic', 'Художественный'),
-]
-
-# Уровни сложности задания
-DIFFICULTY_LEVELS_CHOICES = [
-    ('easy', 'Легкий'),
-    ('medium', 'Средний'),
-    ('hard', 'Сложный'),
-]
-
-# Стадии выполнения попытки
-ATTEMPT_STAGE_CHOICES = [
-    ('created', 'Создано'),
-    ('in_progress', 'В процессе'),
-    ('submitted', 'Отправлено на проверку'),
-    ('review', 'На проверке'),
-    ('completed', 'Завершено'),
-]
-
+from django.core.validators import MinValueValidator, MaxValueValidator, ValidationError
+from .constants import *
 
 # Пользователь
 class User(models.Model):
@@ -50,20 +18,25 @@ class User(models.Model):
 
 # Термин
 class Term(models.Model):
-    content = models.CharField(max_length=32)
-    length = models.IntegerField()
+    content = models.CharField(max_length=128)
+    length = models.IntegerField(editable=False)  # Длина вычисляется автоматически
     subject = models.CharField(max_length=32)
 
+    def save(self, *args, **kwargs):
+        # Вычисляем длину термина автоматически
+        self.length = len(self.content)
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.content
+        return f"{self.content} ({self.subject})"
 
 
-# Задание
+# Модель задания
 class Task(models.Model):
     title = models.CharField(max_length=128)
     content = models.TextField()
     text_complexity = models.CharField(max_length=32, choices=TEXT_COMPLEXITY_CHOICES, default='narrative')
-    status = models.CharField(max_length=16)
+    status = models.CharField(max_length=16, choices=TASK_STATUS_CHOICES, default='draft')
     difficulty = models.CharField(max_length=6, choices=DIFFICULTY_LEVELS_CHOICES, default='medium')
     length = models.IntegerField()
     min_words = models.IntegerField()
@@ -72,12 +45,29 @@ class Task(models.Model):
     max_sentences = models.IntegerField()
     creation_date = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    teacher = models.ForeignKey(User, related_name='teacher_tasks', on_delete=models.CASCADE)
-    terms = models.ManyToManyField(Term, through='TaskTerm')
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    teacher = models.ForeignKey('User', related_name='teacher_tasks', on_delete=models.CASCADE)
+    terms = models.ManyToManyField('Term', through='TaskTerm')
+    is_public = models.BooleanField(default=True)  # Общее задание или нет
+    assigned_user = models.ForeignKey('User', null=True, blank=True, related_name='assigned_tasks', on_delete=models.SET_NULL)
+
+    def clean(self):
+        # Проверка: только преподаватель и администратор могут назначить задание
+        if self.assigned_user and self.teacher.role not in ['teacher', 'admin']:
+            raise ValidationError("Только преподаватель или администратор могут назначать задания конкретному пользователю.")
+
+        # Проверка: кто может создавать задания
+        if self.teacher.role not in ['student', 'teacher', 'admin']:
+            raise ValidationError("Только пользователь, преподаватель или администратор могут создавать задания.")
+
+    def save(self, *args, **kwargs):
+        # Перед сохранением проверяем корректность данных
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.title
+        assigned = f" -> {self.assigned_user.username}" if self.assigned_user else ""
+        return f"{self.title} ({self.get_status_display()}){assigned}"
 
 
 # Связь Задание-Термин
@@ -107,7 +97,7 @@ class Attempt(models.Model):
 # Ошибка в попытке
 class Error(models.Model):
     attempt = models.ForeignKey(Attempt, on_delete=models.CASCADE)
-    error_type = models.CharField(max_length=24)
+    error_type = models.CharField(max_length=24, choices=ERROR_TYPES_CHOICES)
     position_start = models.IntegerField()
     position_end = models.IntegerField()
     true_variant = models.CharField(max_length=128)

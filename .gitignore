@@ -7,6 +7,9 @@ __pycache__/
 *.egg
 *.log
 
+#Mock data
+mock*
+
 # Django
 *.db
 *.sqlite3
