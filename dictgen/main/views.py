@@ -3,9 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import User, Term, Task, Attempt
-from .serializers import UserSerializer, TermSerializer, TaskSerializer, AttemptSerializer
+from .serializers import UserSerializer, TermSerializer, TaskSerializer, AttemptSerializer, UserStatisticsSerializer
 from .utils import analyze_errors
 from rest_framework.pagination import PageNumberPagination
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
 
 # Главная страница
 class RootView(APIView):
@@ -172,3 +174,14 @@ class AttemptDetailView(APIView):
             analyze_errors(attempt)  # Перепроверяем ошибки при обновлении
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['get'])
+    def statistics(self, request, pk=None):
+        user = self.get_object()
+        serializer = UserStatisticsSerializer(user)
+        return Response(serializer.data)
