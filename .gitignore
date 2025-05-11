@@ -21,6 +21,7 @@ staticfiles/
 static/
 
 # Django migrations
+migrations
 **/migrations/**
 !/migrations/__init__.py
 

@@ -1,4 +1,37 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+# Роли пользователя
+USER_ROLES_CHOICES = [
+    ('student', 'Ученик'),
+    ('teacher', 'Преподаватель'),
+    ('admin', 'Администратор'),
+]
+
+# Типы сложности текста
+TEXT_COMPLEXITY_CHOICES = [
+    ('scientific', 'Научный'),
+    ('narrative', 'Повествовательный'),
+    ('colloquial', 'Разговорный'),
+    ('technical', 'Технический'),
+    ('artistic', 'Художественный'),
+]
+
+# Уровни сложности задания
+DIFFICULTY_LEVELS_CHOICES = [
+    ('easy', 'Легкий'),
+    ('medium', 'Средний'),
+    ('hard', 'Сложный'),
+]
+
+# Стадии выполнения попытки
+ATTEMPT_STAGE_CHOICES = [
+    ('created', 'Создано'),
+    ('in_progress', 'В процессе'),
+    ('submitted', 'Отправлено на проверку'),
+    ('review', 'На проверке'),
+    ('completed', 'Завершено'),
+]
 
 
 # Пользователь
@@ -9,10 +42,10 @@ class User(models.Model):
     password = models.CharField(max_length=48)
     first_name = models.CharField(max_length=48)
     last_name = models.CharField(max_length=48)
-    role = models.CharField(max_length=16)
+    role = models.CharField(max_length=16, choices=USER_ROLES_CHOICES, default='student')
 
     def __str__(self):
-        return f"{self.username} ({self.role})"
+        return f"{self.username} ({self.get_role_display()})"
 
 
 # Термин
@@ -29,9 +62,9 @@ class Term(models.Model):
 class Task(models.Model):
     title = models.CharField(max_length=128)
     content = models.TextField()
-    text_complexity = models.CharField(max_length=32)
+    text_complexity = models.CharField(max_length=32, choices=TEXT_COMPLEXITY_CHOICES, default='narrative')
     status = models.CharField(max_length=16)
-    difficulty = models.CharField(max_length=6)
+    difficulty = models.CharField(max_length=6, choices=DIFFICULTY_LEVELS_CHOICES, default='medium')
     length = models.IntegerField()
     min_words = models.IntegerField()
     max_words = models.IntegerField()
@@ -60,10 +93,15 @@ class TaskTerm(models.Model):
 class Attempt(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     content = models.TextField()
-    grade = models.PositiveIntegerField(null=True, blank=True, help_text="Оценка по 100-балльной шкале (0-100)")
+    grade = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Оценка по 100-балльной шкале (0-100)",
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    stage = models.CharField(max_length=16, choices=ATTEMPT_STAGE_CHOICES, default='created')
 
     def __str__(self):
-        return f"Attempt for task: {self.task.title}, Grade: {self.grade if self.grade is not None else 'Не оценено'}"
+        return f"Attempt for task: {self.task.title}, Stage: {self.get_stage_display()}, Grade: {self.grade if self.grade is not None else 'Не оценено'}"
 
 
 # Ошибка в попытке
@@ -112,4 +150,3 @@ class Statistics(models.Model):
 
     def __str__(self):
         return f"Statistics: Accuracy {self.accuracy*100:.2f}%"
-
