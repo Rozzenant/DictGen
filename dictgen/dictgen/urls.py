@@ -19,9 +19,11 @@ from django.urls import path, include
 from main import views
 
 urlpatterns = [
+    # Root URL
+    path('', views.RootView.as_view(), name='root'),
+    
     # Админка
     path('admin/', admin.site.urls),
-    
     
     # Пользователи
     path('users/', views.UserListCreateView.as_view(), name='user-list-create'),

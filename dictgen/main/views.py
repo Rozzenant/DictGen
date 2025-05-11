@@ -5,13 +5,30 @@ from django.shortcuts import get_object_or_404
 from .models import User, Term, Task, Attempt
 from .serializers import UserSerializer, TermSerializer, TaskSerializer, AttemptSerializer
 from .utils import analyze_errors
+from rest_framework.pagination import PageNumberPagination
 
-# Чтение всех пользователей и создание нового (READ ALL, CREATE)
+# Главная страница
+class RootView(APIView):
+    def get(self, request):
+        return Response({
+            'message': 'Добро пожаловать в DictGen API',
+            'endpoints': {
+                'users': '/users/',
+                'terms': '/terms/',
+                'tasks': '/tasks/',
+                'attempts': '/attempts/',
+            }
+        })
+
+# Получение списка пользователей и создание нового (GET, POST)
 class UserListCreateView(APIView):
     def get(self, request):
         users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = request.query_params.get('page_size', 10)
+        paginated_users = paginator.paginate_queryset(users, request)
+        serializer = UserSerializer(paginated_users, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serializer = UserSerializer(data=request.data)
@@ -20,7 +37,7 @@ class UserListCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Чтение, обновление и удаление конкретного пользователя (READ ONE, UPDATE, DELETE)
+# Получение, обновление и удаление конкретного пользователя (GET, PUT, DELETE)
 class UserDetailUpdateDeleteView(APIView):
     def get(self, request, id):
         user = get_object_or_404(User, id=id)
@@ -38,14 +55,17 @@ class UserDetailUpdateDeleteView(APIView):
     def delete(self, request, id):
         user = get_object_or_404(User, id=id)
         user.delete()
-        return Response({'message': f'Пользователь с ID {id} удалён'}, status=status.HTTP_204_NO_CONTENT)
+        return Response({'message': f'Пользователь с ID {id} успешно удалён'}, status=status.HTTP_204_NO_CONTENT)
 
-# Получение всех терминов и создание нового (GET, POST)
+# Получение списка терминов и создание нового (GET, POST)
 class TermListView(APIView):
     def get(self, request):
         terms = Term.objects.all()
-        serializer = TermSerializer(terms, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = request.query_params.get('page_size', 10)
+        paginated_terms = paginator.paginate_queryset(terms, request)
+        serializer = TermSerializer(paginated_terms, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serializer = TermSerializer(data=request.data)
@@ -74,12 +94,15 @@ class TermDetailView(APIView):
         term.delete()
         return Response({'message': f'Термин с ID {id} успешно удалён'}, status=status.HTTP_204_NO_CONTENT)
 
-# Получение всех заданий и создание нового (GET, POST)
+# Получение списка заданий и создание нового (GET, POST)
 class TaskListView(APIView):
     def get(self, request):
         tasks = Task.objects.all()
-        serializer = TaskSerializer(tasks, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = request.query_params.get('page_size', 10)
+        paginated_tasks = paginator.paginate_queryset(tasks, request)
+        serializer = TaskSerializer(paginated_tasks, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serializer = TaskSerializer(data=request.data)
@@ -116,11 +139,15 @@ class TaskDetailView(APIView):
         task.delete()
         return Response({'message': f'Задание с ID {id} успешно удалено'}, status=status.HTTP_204_NO_CONTENT)
 
+# Получение списка попыток и создание новой (GET, POST)
 class AttemptListView(APIView):
     def get(self, request):
         attempts = Attempt.objects.all()
-        serializer = AttemptSerializer(attempts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = request.query_params.get('page_size', 10)
+        paginated_attempts = paginator.paginate_queryset(attempts, request)
+        serializer = AttemptSerializer(paginated_attempts, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serializer = AttemptSerializer(data=request.data)
@@ -130,6 +157,7 @@ class AttemptListView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# Получение, обновление и удаление конкретной попытки (GET, PUT, DELETE)
 class AttemptDetailView(APIView):
     def get(self, request, id):
         attempt = get_object_or_404(Attempt, id=id)
