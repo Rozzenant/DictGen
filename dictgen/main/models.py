@@ -1,16 +1,48 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator, ValidationError
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone
 from .constants import *
 
-# Пользователь
-class User(models.Model):
-    username = models.CharField(max_length=48)
-    email = models.EmailField(max_length=48)
-    login = models.CharField(max_length=48)
-    password = models.CharField(max_length=48)
+class UserManager(BaseUserManager):
+    def create_user(self, username, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Email обязателен')
+        email = self.normalize_email(email)
+        user = self.model(username=username, email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
+        return self.create_user(username, email, password, **extra_fields)
+
+class User(AbstractBaseUser, PermissionsMixin):
+    username = models.CharField(max_length=48, unique=True)
+    email = models.EmailField(max_length=48, unique=True)
     first_name = models.CharField(max_length=48)
     last_name = models.CharField(max_length=48)
     role = models.CharField(max_length=16, choices=USER_ROLES_CHOICES, default='student')
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    last_login = models.DateTimeField(null=True, blank=True)
+    date_joined = models.DateTimeField(default=timezone.now)
+    password = models.CharField(max_length=128)  # Для хранения хешированных паролей
+
+    objects = UserManager()
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    def get_short_name(self):
+        return self.username
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"

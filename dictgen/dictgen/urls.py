@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from main import views
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
 
 # Создаем роутер для API
 router = DefaultRouter()
@@ -9,6 +10,13 @@ router.register(r'users', views.UserViewSet, basename='user')
 
 # API маршруты
 api_patterns = [
+    # Аутентификация
+    path('auth/register/', views.RegisterView.as_view(), name='register'),
+    path('auth/login/', views.LoginView.as_view(), name='login'),
+    path('auth/logout/', views.LogoutView.as_view(), name='logout'),
+    path('auth/change-password/', views.ChangePasswordView.as_view(), name='change-password'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
+    
     # Пользователи
     path('users/', views.UserListCreateView.as_view(), name='user-list-create'),
     path('users/<int:id>/', views.UserDetailUpdateDeleteView.as_view(), name='user-detail-update-delete'),
