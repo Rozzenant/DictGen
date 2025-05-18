@@ -1,0 +1,96 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project specific
+S:/diplom_model/cache/
+model_cache/
+model_offload/
+offload_folder/
+cache/
+*.gguf
+debug.log
+dictgen.log
+logs/
+
+# Test data
+mock*.csv
+mock*.py
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Translations
+*.mo
+*.pot
+
+# Local development settings
+local_settings.py
+
+# Database
+*.sqlite3
+*.db
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# Node (if used for frontend)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# System Files
+.DS_Store
+Thumbs.db 
